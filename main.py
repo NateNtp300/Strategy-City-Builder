@@ -1,6 +1,7 @@
 from tkinter import *
 import math
 import time
+from tkinter.ttk import Progressbar
 mainWindow = Tk()
 mainWindow.geometry("1280x720")
 backdrop = Canvas(mainWindow, bg='white', width=1280, height=100)
@@ -19,12 +20,6 @@ class windowHandler:
     def __init__(self, open):
         self.open=open
 
-# class Property:
-#     def __init__(self, villageValue,villageCount, ironMineValue, ironMineCount):
-#         self.villageValue = villageValue
-#         self.villageCount = villageCount
-#         self.ironMineValue = ironMineValue
-#         self.ironMineCount = ironMineCount
 class Property:
     def __init__(self, value, amount, ironCost):
         self.value = value
@@ -48,8 +43,20 @@ class Soldiers:
         self.titanmiumCost = titaniumCost
 
 #declare soldiers
-warrior = Soldiers("Warrior", 0, 5, 5, 5, 2, 0)
-knight = Soldiers("Knight", 0, 10, 10, 10, 5, 0)
+warrior = Soldiers(name="Warrior",
+                   amount=0,
+                   attack=5,
+                   defence=5,
+                   goldCost=5,
+                   ironCost=2,
+                   titaniumCost=0)
+knight = Soldiers(name="Knight",
+                  amount=0,
+                  attack=10,
+                  defence=10,
+                  goldCost=10,
+                  ironCost=5,
+                  titaniumCost=0)
 
 #declare properties
 village = Property(20, 0, 0)
@@ -62,8 +69,18 @@ plotColumns =10
 global newWindow
 global barracksWindow
 
+pixel = PhotoImage(width=1, height=1)
+village_img = PhotoImage(file='village.png')
+mine_img = PhotoImage(file='mine.png')
+barracks_img = PhotoImage(file='barracks.png')
+
 timer = Timer(0,0)
-city = City(100,0,0,0,0,100)
+city = City(money=1000,
+            iron=100,
+            population=0,
+            populationPotential=0,
+            populationUnused=0,
+            populationCap=100)
 winOpen = windowHandler(FALSE)
 #property = Property(20,0, 50,0)
 
@@ -71,25 +88,30 @@ winOpen = windowHandler(FALSE)
 
 def showTime():
     
-    timer.second+=1
+    timer.second += 1
     sec = 1000
+
+    # Create progress bar if not exists
+    if not hasattr(showTime, "progress"):
+        showTime.progress = Progressbar(mainWindow, orient="horizontal", length=200, mode="determinate", maximum=60)
+        showTime.progress.place(x=500, y=660)
+
+    showTime.progress["value"] = timer.second
+
     if timer.second == 60:
         timer.second = 0
-        timer.minute+=1
-        print('add money')
-        
+        timer.minute += 1
+        showTime.progress["value"] = 0
         addMoney()
         addIron()
-        
         showMoney()
         showIron()
 
     if timer.second < 10:
-        timeDisplay.config(text="Time: " + str(timer.minute) + ":0"+ str(timer.second))
+        timeDisplay.config(text="Time: " + str(timer.minute) + ":0" + str(timer.second))
         timeDisplay.after(sec, showTime)
-        
     else:
-        timeDisplay.config(text="Time: " + str(timer.minute) + ":"+ str(timer.second))
+        timeDisplay.config(text="Time: " + str(timer.minute) + ":" + str(timer.second))
         timeDisplay.after(sec, showTime)
 
     
@@ -124,7 +146,13 @@ def createGrid():
     z= 0
     for i in range(plotColumns):
         for w in range(plotRows):
-            plot = Button(mainWindow, text='$20', height=3, width=7, command=lambda c=z:buy(c))
+            plot = Button(mainWindow, text='$20', compound='center', 
+                          image=pixel, 
+                          height=50,
+                          width=50,
+                          padx=0,
+                          pady=0, 
+                          command=lambda c=z:buy(c))
             plot.grid(row=w, column=i)
             plotList.append(plot)
             z=z+1
@@ -179,6 +207,12 @@ def addMoney():
 #gain iron depending on amount of iron mines
 def addIron():
     city.iron += (ironMine.amount*2)
+
+def errorMoney():
+    errorLabel = Label(mainWindow, font=("Verdana", 12, "bold"), bg='white', fg='red', text='Not enough money')
+    errorLabel.place(x=1100, y=690)
+    # Remove the error after 2 seconds
+    mainWindow.after(2000, errorLabel.destroy)
       
 def buy(c):
     global newWindow
@@ -192,19 +226,11 @@ def buy(c):
             village.amount +=1
             city.population+=100
             showPopulation()
-            # city.populationPotential = village.amount*100
-            # print('Population Potential: '+str(city.populationPotential))
-            plotList[c].config(bg='yellow')
-            # if city.population < city.populationCap:
-            #     city.population+=100
-            #     showPopulation()
+            plotList[c].config(image=village_img, bg='yellow')
                 
-            # else:
-            #     city.populationUnused +=100
-            #     print('Unused population: '+ str(city.populationUnused))
         else:
-            print('not enought money')
-    
+            errorMoney()
+
     def buyIronMine():
         if city.money >= ironMine.value:
             city.money-=ironMine.value
@@ -213,31 +239,19 @@ def buy(c):
             
             ironMine.amount+=1
             print('Iron Mine count: '+str(ironMine.amount))
-            #city.populationCap +=200
-            #print('Population cap: '+str(city.populationCap))
-            plotList[c].config(bg='darkgrey')
-            #showPopulation()
-            # if city.populationUnused >=100 and city.populationUnused <200:
-            #     city.populationUnused -=100
-            #     print('Unused population: '+ str(city.populationUnused))
-            #     city.population+=100
-            #     showPopulation()
-            # if city.populationUnused >=200:
-            #     city.populationUnused -=200
-            #     print('Unused population: '+ str(city.populationUnused))
-            #     city.population+=200
-            #     showPopulation()
+
+            plotList[c].config(image=mine_img, bg='darkgrey')
             
         else:
-            print('not enough money')
-    
+            errorMoney()
+
     def buyBarracks():
         if city.money >= barracks.value and city.iron >= barracks.ironCost:
             city.money -= barracks.value
             city.iron -= barracks.ironCost
             showIron()
             showMoney()
-            plotList[c].config(bg='red')
+            plotList[c].config(image=barracks_img, bg='red')
             # destroyBarracksWindow()
             destroyWindow()
             
@@ -249,16 +263,23 @@ def buy(c):
     if plotList[c]['text'] == '' and plotList[c]['bg'] == 'green':
         #print('already bought')
         buildWindow()
-        closeBtn = Button(newWindow, bg='darkgrey', text='close', command=destroyWindow).place(x=20,y=550)
+        closeBtn = Button(newWindow, bg='darkgrey', text='close', command=destroyWindow)
+        closeBtn.place(x=20,y=550)
 
-        villageBtn = Button(newWindow,text='CREATE', bg='darkgrey', command=buyVillage).place(x=20,y=50)
-        villageLbl = Label(newWindow, text="Village").place(x=20,y=80)
+        villageBtn = Button(newWindow,text='CREATE', bg='darkgrey', command=buyVillage)
+        villageBtn.place(x=20,y=50)
+        villageLbl = Label(newWindow, text="Village")
+        villageLbl.place(x=20,y=80)
 
-        ironMineBtn = Button(newWindow,text='CREATE', bg='darkgrey', command=buyIronMine).place(x=200,y=50)
-        ironMineLbl = Label(newWindow, text="Iron Mine").place(x=200,y=80)
+        ironMineBtn = Button(newWindow,text='CREATE', bg='darkgrey', command=buyIronMine)
+        ironMineBtn.place(x=200,y=50)
+        ironMineLbl = Label(newWindow, text="Iron Mine")
+        ironMineLbl.place(x=200,y=80)
 
-        barracksBtn = Button(newWindow, text='CREATE', bg ='darkgrey', command=buyBarracks).place(x=20, y=100)
-        barracksLbl = Label(newWindow, text="Barracks").place(x=20,y=130)
+        barracksBtn = Button(newWindow, text='CREATE', bg ='darkgrey', command=buyBarracks)
+        barracksBtn.place(x=20, y=100)
+        barracksLbl = Label(newWindow, text="Barracks")
+        barracksLbl.place(x=20,y=130)
 
     if plotList[c]['bg'] =='yellow':
         print('village')
@@ -266,17 +287,37 @@ def buy(c):
         print('Iron Mine')
 
     def trainWarrior():
-        warrior.amount+=1
-        print("Warriors: "+ str(warrior.amount))
+        if city.money >= warrior.goldCost:
+            city.money -= warrior.goldCost
+            warrior.amount += 1
+            showMoney()
+            print("Warriors: " + str(warrior.amount))
+        else:
+            errorMoney()
+
+    def trainKnight():
+            if city.money >= knight.goldCost:
+                city.money -= knight.goldCost
+                knight.amount += 1
+                showMoney()
+                print("Knights: " + str(knight.amount))
+            else:
+                errorMoney()
 
     if plotList[c]['bg'] =='red':
         buildBarracksWindow()
-        closeBtn = Button(barracksWindow, bg='darkgrey', text='close', command=destroyBarracksWindow).place(x=20,y=550)
-        warriorBtn = Button(barracksWindow, text='TRAIN', bg='darkgrey', command=trainWarrior).place(x=20, y=50)
-        WarriorLbl = Label(barracksWindow, text='Warrior').place(x=20,y=80)
+        closeBtn = Button(barracksWindow, bg='darkgrey', text='close', command=destroyBarracksWindow)
+        closeBtn.place(x=20,y=550)
+        warriorBtn = Button(barracksWindow, text='TRAIN', bg='darkgrey', command=trainWarrior)
+        warriorBtn.place(x=20, y=50)
+        WarriorLbl = Label(barracksWindow, text='Warrior')
+        WarriorLbl.place(x=20, y=80)
 
-        
-            
+        knightBtn = Button(barracksWindow, text='TRAIN', bg='darkgrey', command=trainKnight)
+        knightBtn.place(x=200, y=50)
+        KnightLbl = Label(barracksWindow, text='Knight')
+        KnightLbl.place(x=200, y=80)
+
             
 
     if plotList[c]['text'] == '$20':
@@ -285,7 +326,7 @@ def buy(c):
             city.money -=20
             showMoney()
         else:
-            print('not enough money')
+            errorMoney()
 
 
     
