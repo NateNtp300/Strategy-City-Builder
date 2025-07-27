@@ -37,3 +37,33 @@ class GameUI:
         font1 = ("Verdana", 16, "bold")
         attackStatus = Label(self.main_window, font=font1, bg='white', text='Attack Power: ' + str(total_attack) + '   ')
         attackStatus.place(x=1000, y=630)
+
+    def show_wave_result(self, on_close=None):
+        # create a new popup window that shows the wave was defeated with an ok button
+        popup = Toplevel(self.main_window)
+        popup.title("Notification")
+        popup.geometry("400x200")
+        message= "Wave defeated successfully!"
+        label = Label(popup, text=message, font=("Verdana", 14, "bold"), bg='white')
+        label.pack(pady=40)
+        def close_popup():
+            popup.destroy()
+            if on_close:
+                on_close()
+        ok_button = Button(popup, text="OK", command=close_popup)
+        ok_button.pack(pady=20)
+
+    def show_final_wave_result(self, on_close=None):
+        # create a new popup window that shows the final wave was defeated with an ok button
+        popup = Toplevel(self.main_window)
+        popup.title("Notification")
+        popup.geometry("400x200")
+        message = "Congratulations!\nYou have defeated all waves!"
+        label = Label(popup, text=message, font=("Verdana", 14, "bold"), bg='white')
+        label.pack(pady=40)
+        def close_popup():
+            popup.destroy()
+            if on_close:
+                on_close()
+        ok_button = Button(popup, text="OK", command=close_popup)
+        ok_button.pack(pady=20)

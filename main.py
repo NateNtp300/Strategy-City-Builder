@@ -17,10 +17,6 @@ class City:
         self.populationUnused = populationUnused
         self.populationCap = populationCap
 
-class windowHandler:
-    def __init__(self, open):
-        self.open=open
-
 class Property:
     def __init__(self, value, amount, ironCost):
         self.value = value
@@ -83,45 +79,92 @@ city = City(money=1000,
             populationPotential=0,
             populationUnused=0,
             populationCap=100)
-winOpen = windowHandler(FALSE)
 
 def calc_attack_power():
-    total_attack = warrior.amount * warrior.attack + knight.amount * knight.attack
+    total_attack = warrior.amount * warrior.attack + knight.amount * knight.attack + 100
     return total_attack
 
+class Wave:
+    def __init__(self, count, enemy_attack_power, enemy_defense):
+        self.count = count
+        self.enemy_attack_power = enemy_attack_power
+        self.enemy_defense = enemy_defense
+        self.all_defeated = False
+    def increment_wave(self):
+        self.count += 1
+        self.enemy_attack_power += 10
+        self.enemy_defense += 5
+    def check_defeat_wave(self, player_attack_power):
+        if player_attack_power >= self.enemy_defense:
+            if self.count == 1:
+                self.all_defeated = True
+            else:
+                self.increment_wave()
+            return True
+        return False
+
+wave = Wave(count=1, enemy_attack_power=10, enemy_defense=5)
+
+timer_paused = False
+finished_game = False
+
+def resume_timer():
+    global timer_paused
+    timer_paused = False
 
 def showTime():
-    
+    global timer_paused, finished_game
+
+    if finished_game:
+        return
+
+    if timer_paused:
+        timeDisplay.after(1000, showTime)
+        return
+
     timer.second += 1
     sec = 1000
+    attack_interval = 5
 
-    # Create label above the progress bar
+    # Create label above the progress bar if not exists
     if not hasattr(showTime, "wave_label"):
-        showTime.wave_label = Label(main_window, text="the next wave approaches...", font=("Verdana", 12, "bold"), bg='white')
+        showTime.wave_label = Label(main_window, text="The next wave approaches...", font=("Verdana", 12, "bold"), bg='white')
         showTime.wave_label.place(x=500, y=630)
 
     # Create progress bar if not exists
     if not hasattr(showTime, "progress"):
-        showTime.progress = Progressbar(main_window, orient="horizontal", length=200, mode="determinate", maximum=60)
+        showTime.progress = Progressbar(main_window, orient="horizontal", length=200, mode="determinate", maximum=attack_interval)
         showTime.progress.place(x=500, y=660)
 
-    showTime.progress["value"] = timer.second
+    if not wave.all_defeated:
+        showTime.progress["value"] = timer.second % attack_interval
+    else:
+        showTime.progress["value"] = 0
 
-    if timer.second == 60:
-        timer.second = 0
-        timer.minute += 1
+    if timer.second % attack_interval == 0 and timer.second != 0:
         showTime.progress["value"] = 0
         addMoney()
         addIron()
         ui.show_money(city.money)
         ui.show_iron(city.iron)
 
-    if timer.second < 10:
-        timeDisplay.config(text="Time: " + str(timer.minute) + ":0" + str(timer.second))
-        timeDisplay.after(sec, showTime)
-    else:
-        timeDisplay.config(text="Time: " + str(timer.minute) + ":" + str(timer.second))
-        timeDisplay.after(sec, showTime)
+        if wave.check_defeat_wave(calc_attack_power()):
+            timer_paused = True
+            if not finished_game:
+                if wave.count == 1:
+                    ui.show_final_wave_result(on_close=resume_timer)
+                    showTime.wave_label.config(text="All waves defeated!")
+                    finished_game = True
+                else:
+                    ui.show_wave_result(on_close=resume_timer)
+
+    if timer.second == 60:
+        timer.second = 0
+        timer.minute += 1
+
+    time_str = f"Time: {timer.minute}:{timer.second:02d}"
+    timeDisplay.config(text=time_str)
+    timeDisplay.after(sec, showTime)
 
     
     
